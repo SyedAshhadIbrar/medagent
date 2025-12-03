@@ -1,1444 +1,1285 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
+║                                MEDGUIDE AI                                   ║
+║                    AI-Powered Medical Learning Companion                     ║
 ║                                                                              ║
-║   ███╗   ███╗███████╗██████╗  ██████╗ ██╗   ██╗██╗██████╗ ███████╗          ║
-║   ████╗ ████║██╔════╝██╔══██╗██╔════╝ ██║   ██║██║██╔══██╗██╔════╝          ║
-║   ██╔████╔██║█████╗  ██║  ██║██║  ███╗██║   ██║██║██║  ██║█████╗            ║
-║   ██║╚██╔╝██║██╔══╝  ██║  ██║██║   ██║██║   ██║██║██║  ██║██╔══╝            ║
-║   ██║ ╚═╝ ██║███████╗██████╔╝╚██████╔╝╚██████╔╝██║██████╔╝███████╗          ║
-║   ╚═╝     ╚═╝╚══════╝╚═════╝  ╚═════╝  ╚═════╝ ╚═╝╚═════╝ ╚══════╝          ║
+║  A production-grade multi-agent system with:                                 ║
+║  • Explicit mode definitions & state machine                                 ║
+║  • Formal input/output contracts                                             ║
+║  • Safety boundaries & refusal patterns                                      ║
+║  • Structured observability & tracing                                        ║
+║  • Adaptive learning with spaced repetition                                  ║
+║  • Multi-agent coordination protocols                                        ║
 ║                                                                              ║
-║   AI-Powered Medical Learning Companion                                      ║
-║   Multi-Agent System with Advanced ADK Patterns                             ║
-║                                                                              ║
+║  Author: Ashhad                                                              ║
+║  Competition: Google ADK Agents Intensive - Agents for Good                  ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
-# PROBLEM: Medical students and healthcare professionals struggle with:
-#   - Information overload from vast medical knowledge
-#   - Fragmented learning resources across multiple platforms
-#   - No personalized learning paths or progress tracking
-#   - Poor retention without spaced repetition
-#   - Limited self-assessment integrated with learning
-#
-# SOLUTION: MedGuide is a multi-agent AI system that provides personalized
-# medical education through intelligent routing, evidence-based content,
-# and adaptive learning features.
-#
-# =============================================================================
-# ARCHITECTURE OVERVIEW
-# =============================================================================
-#
-#                              ┌─────────────────┐
-#                              │   User Input    │
-#                              └────────┬────────┘
-#                                       │
-#                                       ▼
-#                     ┌─────────────────────────────────┐
-#                     │     MedGuideRouter              │
-#                     │     (Orchestrator Agent)        │
-#                     └─────────────────┬───────────────┘
-#                                       │
-#                     ┌─────────────────┼─────────────────┐
-#                     │                 │                 │
-#                     ▼                 ▼                 ▼
-#              ┌────────────┐   ┌─────────────┐   ┌─────────────┐
-#              │  Intent    │   │  Parallel   │   │ Sequential  │
-#              │ Classifier │   │  Agents     │   │  Pipeline   │
-#              └────────────┘   └─────────────┘   └─────────────┘
-#                     │         │           │           │
-#                     │    Literature   Guidelines      │
-#                     │     Agent        Agent          │
-#                     │         │           │           │
-#                     │         └─────┬─────┘           │
-#                     │               │                 │
-#                     │               ▼                 │
-#                     │        ┌─────────────┐          │
-#                     │        │  Concept    │──────────┤
-#                     │        │  Explainer  │          │
-#                     │        └─────────────┘          │
-#                     │               │                 │
-#                     │               ▼                 │
-#                     │        ┌─────────────┐          │
-#                     │        │    Quiz     │──────────┤
-#                     │        │  Generator  │          │
-#                     │        └─────────────┘          │
-#                     │               │                 │
-#                     │               ▼                 │
-#                     │        ┌─────────────┐          │
-#                     │        │ Study Plan  │──────────┘
-#                     │        │  Builder    │
-#                     │        └─────────────┘
-#                     │               │
-#                     │               ▼
-#                     │     ┌─────────────────┐
-#                     └────►│   Response      │
-#                           │  Synthesizer    │
-#                           └────────┬────────┘
-#                                    │
-#                                    ▼
-#                           ┌─────────────────┐
-#                           │ Persistent      │
-#                           │ Memory (JSON)   │
-#                           └─────────────────┘
-#
-# =============================================================================
-# KEY ADK CONCEPTS DEMONSTRATED
-# =============================================================================
-#
-# 1. MULTI-AGENT SYSTEM (10 agents):
-#    - Intent Classifier, Concept Explainer, Literature Searcher
-#    - Guideline Explainer, Quiz Generator, Study Plan Builder
-#    - Smalltalk Handler, Study History, Study Recommender
-#    - Response Synthesizer
-#
-# 2. PARALLEL AGENTS:
-#    - Literature + Guideline agents run concurrently via asyncio.gather()
-#    - Speeds up information gathering by 2-3x
-#
-# 3. SEQUENTIAL AGENTS:
-#    - Explain → Quiz → Plan pipeline ensures logical content flow
-#    - Each agent builds on previous agent's output
-#
-# 4. CUSTOM TOOLS:
-#    - pubmed_search(): Real NCBI E-utilities API integration
-#    - save_study_plan(): Persistent study plan storage
-#
-# 5. SESSIONS & STATE MANAGEMENT:
-#    - ctx.session.state for inter-agent data sharing
-#    - Detected intent/topic passed through pipeline
-#
-# 6. LONG-TERM MEMORY:
-#    - JSON-based persistent storage (memory_db.json)
-#    - Spaced repetition scheduling for optimal retention
-#
-# 7. CONTEXT ENGINEERING:
-#    - Shared system context injected into all agents
-#    - Learner history context for personalized responses
-#
-# 8. OBSERVABILITY:
-#    - Structured logging with timestamps and levels
-#    - Agent execution tracking for debugging
-#
-# =============================================================================
-# Author: Ashhad (NEUROCAREAI)
-# Track: Agents for Good (Healthcare/Education)
-# Competition: Google AI Agents Intensive Capstone Project
-# =============================================================================
 
 from __future__ import annotations
 
-# -----------------------------------------------------------------------------
-# IMPORTS
-# -----------------------------------------------------------------------------
-# Standard library imports for async operations, data handling, and utilities
-import asyncio          # For parallel agent execution
-import json             # For memory persistence and intent parsing
-import logging          # For observability and debugging
-from datetime import datetime, timedelta  # For spaced repetition scheduling
-from pathlib import Path                   # For file path handling
-from typing import Any, AsyncGenerator, Dict, List, Optional  # Type hints
+import asyncio
+import hashlib
+import json
+import re
+import time
+import uuid
+import urllib.parse
+import urllib.request
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timedelta
+from enum import Enum, auto
+from pathlib import Path
+from typing import Any, AsyncGenerator, Dict, List, Optional, Callable, TypeVar, Generic
+from xml.etree import ElementTree as ET
 
-# HTTP and XML handling for PubMed API integration
-import urllib.parse     # URL encoding for API requests
-import urllib.request   # HTTP requests to PubMed
-from xml.etree import ElementTree as ET  # Parse PubMed XML responses
-
-# Google ADK imports - core framework classes
-from google.adk.agents import BaseAgent, LlmAgent  # Agent base classes
-from google.adk.events import Event                 # Event handling
-from google.adk.agents.invocation_context import InvocationContext  # Session context
-
-
-# =============================================================================
-# LOGGING CONFIGURATION (Observability)
-# =============================================================================
-# Structured logging enables debugging and monitoring of agent execution.
-# Logs include timestamps, severity levels, and component names.
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger("MedGuide")
+from google.adk.agents import BaseAgent, LlmAgent
+from google.adk.agents.invocation_context import InvocationContext
+from google.adk.events import Event
+from google.genai import types
 
 
 # =============================================================================
-# CONFIGURATION CONSTANTS
+# SECTION 1: CONFIGURATION & CONSTANTS
 # =============================================================================
-# Centralized configuration for easy maintenance and modification.
 
-MODEL = "gemini-2.0-flash"  # LLM model for all agents (Gemini requirement for bonus)
-
-# Persistent memory storage path - stores learning history between sessions
-MEMORY_DB_PATH = Path(__file__).parent / "memory_db.json"
-
-# PubMed API base URL for evidence-based literature search
-NCBI_EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
-
-# Spaced repetition intervals (in days) based on topic difficulty
-# Research shows varying intervals improves long-term retention
-SPACED_REPETITION_INTERVALS = {
-    "hard": 1,    # Difficult topics reviewed daily
-    "medium": 3,  # Moderate topics reviewed every 3 days
-    "easy": 7,    # Well-understood topics reviewed weekly
-}
-
-
-# =============================================================================
-# CONTEXT ENGINEERING - Shared System Context
-# =============================================================================
-# This shared context is injected into ALL agents to ensure consistent behavior.
-# Context engineering is a key technique for multi-agent coherence.
-#
-# DESIGN DECISION: Using a shared context string rather than per-agent instructions
-# ensures all agents understand:
-# - Their role in the system
-# - Core behavioral principles
-# - What NOT to do (redirect instead of answer)
-
-MEDGUIDE_SYSTEM_CONTEXT = """
-You are part of MedGuide, an AI-powered medical learning companion designed to help 
-medical students, healthcare professionals, and lifelong learners master medical concepts.
-
-CORE PRINCIPLES:
-1. BE HELPFUL AND PROACTIVE - Answer questions directly, don't ask what the user wants
-2. BE EDUCATIONAL - Explain concepts clearly with clinical relevance
-3. BE ACCURATE - Use evidence-based information
-4. BE ENCOURAGING - Support the learner's journey
-5. NEVER provide direct patient care advice - this is for LEARNING only
-
-IMPORTANT: When a user asks ANY medical question, ALWAYS provide a helpful 
-educational answer. Never redirect them or ask what they want - just teach them!
-"""
+class Config:
+    """Centralized configuration with explicit defaults."""
+    
+    # Model
+    MODEL: str = "gemini-2.0-flash"
+    
+    # Paths
+    BASE_DIR: Path = Path(__file__).parent
+    MEMORY_PATH: Path = BASE_DIR / "learner_memory.json"
+    LOG_PATH: Path = BASE_DIR / "agent_logs.jsonl"
+    
+    # API Settings
+    PUBMED_BASE_URL: str = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+    API_TIMEOUT: int = 15
+    MAX_SEARCH_RESULTS: int = 10
+    
+    # Learning System
+    SPACED_REPETITION_INTERVALS: Dict[str, int] = {
+        "new": 1,
+        "learning": 3,
+        "review": 7,
+        "mastered": 14
+    }
+    
+    # Safety
+    MAX_INPUT_LENGTH: int = 5000
+    MAX_RESPONSE_LENGTH: int = 4000
 
 
 # =============================================================================
-# PERSISTENT MEMORY SYSTEM (Long-Term Memory)
-# =============================================================================
-# Implements a spaced repetition system for tracking learning progress.
-# Data persists in JSON format between sessions.
-#
-# DESIGN DECISIONS:
-# - JSON storage for simplicity and portability (no database dependencies)
-# - Spaced repetition algorithm based on difficulty assessment
-# - Topic-based tracking (not session-based) for comprehensive coverage
+# SECTION 2: TYPE SYSTEM & CONTRACTS
 # =============================================================================
 
-class StudyMemoryManager:
+class AgentMode(Enum):
     """
-    Manages persistent study memory with spaced repetition scheduling.
+    Explicit agent operation modes.
+    Each mode has defined input expectations and output contracts.
+    """
+    IDLE = auto()           # Waiting for input
+    EXPLAIN = auto()        # Medical concept explanation
+    QUIZ = auto()           # Assessment generation
+    SEARCH = auto()         # Literature retrieval
+    PLAN = auto()           # Study planning
+    HISTORY = auto()        # Progress review
+    CLARIFY = auto()        # Seeking clarification
+    REFUSE = auto()         # Safety refusal
+
+
+class TopicDifficulty(Enum):
+    """Learner difficulty levels for adaptive learning."""
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+
+
+class SafetyFlag(Enum):
+    """Safety classification for inputs."""
+    SAFE = auto()
+    NEEDS_DISCLAIMER = auto()
+    REFUSE_DIAGNOSIS = auto()
+    REFUSE_TREATMENT = auto()
+    REFUSE_EMERGENCY = auto()
+    AMBIGUOUS = auto()
+
+
+@dataclass
+class AgentInput:
+    """
+    Formal input contract for the agent.
+    All inputs must be validated against this contract.
+    """
+    text: str
+    session_id: str
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    context: Dict[str, Any] = field(default_factory=dict)
     
-    This class implements the LONG-TERM MEMORY ADK concept by persisting
-    learning data between sessions and using it to personalize responses.
+    def __post_init__(self):
+        # Input validation
+        if len(self.text) > Config.MAX_INPUT_LENGTH:
+            raise ValueError(f"Input exceeds maximum length of {Config.MAX_INPUT_LENGTH}")
+        self.text = self.text.strip()
     
-    Features:
-        - Persistent JSON storage survives restarts
-        - Spaced repetition calculates optimal review times
-        - Difficulty tracking adapts to learner performance
-        - Context generation for agent personalization
+    def to_dict(self) -> Dict:
+        return {
+            "text": self.text,
+            "session_id": self.session_id,
+            "timestamp": self.timestamp.isoformat(),
+            "context": self.context
+        }
+
+
+@dataclass
+class AgentOutput:
+    """
+    Formal output contract for the agent.
+    All responses must conform to this contract.
+    """
+    content: str
+    mode: AgentMode
+    confidence: float
+    topic: Optional[str] = None
+    sources: List[Dict] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    safety_applied: bool = False
     
-    Attributes:
-        db_path: Path to the JSON storage file
+    def to_dict(self) -> Dict:
+        return {
+            "content": self.content[:Config.MAX_RESPONSE_LENGTH],
+            "mode": self.mode.name,
+            "confidence": self.confidence,
+            "topic": self.topic,
+            "sources": self.sources,
+            "metadata": self.metadata,
+            "safety_applied": self.safety_applied
+        }
+
+
+@dataclass
+class ToolInvocation:
+    """Contract for tool invocations with explicit pre/post conditions."""
+    tool_name: str
+    parameters: Dict[str, Any]
+    preconditions: List[str]
+    expected_output_type: str
+    timeout: int = Config.API_TIMEOUT
+    
+    def validate_preconditions(self, context: Dict) -> bool:
+        """Verify all preconditions are met before invocation."""
+        return all(context.get(p) for p in self.preconditions)
+
+
+@dataclass  
+class LearnerState:
+    """
+    Learner profile with explicit state management.
+    Follows data minimization principles.
+    """
+    user_id: str
+    topics_studied: Dict[str, Dict] = field(default_factory=dict)
+    current_difficulty: TopicDifficulty = TopicDifficulty.BEGINNER
+    session_count: int = 0
+    last_active: Optional[str] = None
+    
+    # Explicit: What we DON'T store
+    # - No personal health information
+    # - No diagnostic history
+    # - No treatment preferences
+    
+    def to_dict(self) -> Dict:
+        return {
+            "user_id": self.user_id,
+            "topics_studied": self.topics_studied,
+            "current_difficulty": self.current_difficulty.value,
+            "session_count": self.session_count,
+            "last_active": self.last_active
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> "LearnerState":
+        return cls(
+            user_id=data.get("user_id", "default"),
+            topics_studied=data.get("topics_studied", {}),
+            current_difficulty=TopicDifficulty(data.get("current_difficulty", "beginner")),
+            session_count=data.get("session_count", 0),
+            last_active=data.get("last_active")
+        )
+
+
+# =============================================================================
+# SECTION 3: OBSERVABILITY & LOGGING
+# =============================================================================
+
+@dataclass
+class LogEntry:
+    """Structured log entry for observability."""
+    timestamp: str
+    correlation_id: str
+    event_type: str
+    component: str
+    message: str
+    data: Dict[str, Any] = field(default_factory=dict)
+    duration_ms: Optional[float] = None
+    error: Optional[str] = None
+
+
+class ObservabilityLayer:
+    """
+    Structured logging and metrics for agent behavior tracing.
+    Enables auditing and debugging of agent decisions.
     """
     
-    def __init__(self, db_path: Path = MEMORY_DB_PATH):
-        """
-        Initialize memory manager with storage path.
-        
-        Args:
-            db_path: Path to JSON file for persistent storage
-        """
-        self.db_path = db_path
+    def __init__(self, log_path: Path = Config.LOG_PATH):
+        self.log_path = log_path
+        self._correlation_id: Optional[str] = None
+        self._start_time: Optional[float] = None
+        self._metrics: Dict[str, List[float]] = {}
     
-    def load(self) -> Dict[str, Any]:
-        """
-        Load study memory from persistent storage.
+    def start_trace(self) -> str:
+        """Begin a new request trace."""
+        self._correlation_id = str(uuid.uuid4())[:8]
+        self._start_time = time.perf_counter()
+        return self._correlation_id
+    
+    def log(
+        self,
+        event_type: str,
+        component: str,
+        message: str,
+        data: Optional[Dict] = None,
+        error: Optional[str] = None
+    ):
+        """Write structured log entry."""
+        duration = None
+        if self._start_time:
+            duration = (time.perf_counter() - self._start_time) * 1000
         
-        Returns:
-            Dictionary mapping topic names to their learning records.
-            Returns empty dict if file doesn't exist or is corrupted.
-        """
-        if not self.db_path.exists():
-            return {}
+        entry = LogEntry(
+            timestamp=datetime.utcnow().isoformat(),
+            correlation_id=self._correlation_id or "no-trace",
+            event_type=event_type,
+            component=component,
+            message=message,
+            data=data or {},
+            duration_ms=duration,
+            error=error
+        )
+        
+        # Console output
+        level = "ERROR" if error else "INFO"
+        print(f"{entry.timestamp} | {level:5} | {entry.correlation_id} | [{component}] {message}")
+        
+        # Persist to file
         try:
-            with open(self.db_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data if isinstance(data, dict) else {}
-        except Exception as e:
-            logger.warning(f"Failed to load memory: {e}")
-            return {}
+            with open(self.log_path, "a") as f:
+                f.write(json.dumps(asdict(entry)) + "\n")
+        except IOError:
+            pass
     
-    def save(self, db: Dict[str, Any]) -> bool:
-        """
-        Save study memory to persistent storage.
+    def log_mode_transition(self, from_mode: AgentMode, to_mode: AgentMode, reason: str):
+        """Log agent mode transitions for auditability."""
+        self.log(
+            event_type="MODE_TRANSITION",
+            component="StateMachine",
+            message=f"{from_mode.name} → {to_mode.name}",
+            data={"reason": reason}
+        )
+    
+    def log_tool_invocation(self, tool: str, params: Dict, success: bool, result_count: int = 0):
+        """Log tool invocations with results."""
+        self.log(
+            event_type="TOOL_CALL",
+            component="ToolLayer",
+            message=f"Tool: {tool}",
+            data={"params": params, "success": success, "result_count": result_count}
+        )
+    
+    def log_safety_check(self, flag: SafetyFlag, input_text: str):
+        """Log safety evaluations."""
+        self.log(
+            event_type="SAFETY_CHECK",
+            component="SafetyLayer",
+            message=f"Flag: {flag.name}",
+            data={"input_preview": input_text[:100]}
+        )
+    
+    def record_metric(self, name: str, value: float):
+        """Record a metric for analysis."""
+        if name not in self._metrics:
+            self._metrics[name] = []
+        self._metrics[name].append(value)
+
+
+# Global observability instance
+obs = ObservabilityLayer()
+
+
+# =============================================================================
+# SECTION 4: SAFETY LAYER
+# =============================================================================
+
+class SafetyBoundary:
+    """
+    Explicit safety boundaries for medical AI.
+    
+    HARD BOUNDARIES (Always refuse):
+    - Diagnosis requests
+    - Treatment recommendations
+    - Emergency medical advice
+    - Drug dosing
+    - Personal health decisions
+    
+    SOFT BOUNDARIES (Add disclaimer):
+    - Symptom discussions
+    - Drug information
+    - Procedure descriptions
+    """
+    
+    # Patterns that trigger HARD refusal
+    REFUSE_PATTERNS = [
+        # Diagnosis requests
+        r"\b(do i have|diagnose|what('s| is) wrong with me|is it|could it be)\b.*\b(cancer|disease|condition|infection|disorder)\b",
+        r"\bdiagnos(e|is)\b",
+        r"\bwhat('s| is) (wrong|causing)\b.*\b(my|me)\b",
         
-        Args:
-            db: Dictionary of topic records to persist
-            
-        Returns:
-            True if save succeeded, False otherwise
+        # Treatment requests
+        r"\b(should i take|what (medication|drug|medicine)|prescribe|how much .* should i)\b",
+        r"\btreat(ment)? for my\b",
+        r"\b(dosage|dose) for\b",
+        
+        # Emergency indicators
+        r"\b(chest pain|can't breathe|overdose|suicide|heart attack|stroke)\b.*\b(right now|currently|having)\b",
+        r"\bemergency\b",
+        
+        # Personal health decisions
+        r"\bshould i (stop|start|continue|change)\b.*\b(medication|treatment|therapy)\b",
+    ]
+    
+    # Patterns requiring disclaimer
+    DISCLAIMER_PATTERNS = [
+        r"\bsymptoms? of\b",
+        r"\bside effects?\b",
+        r"\b(drug|medication) interaction\b",
+        r"\bprognosis\b",
+    ]
+    
+    DISCLAIMER_TEXT = (
+        "\n\n---\n"
+        "⚕️ *Educational information only. Not medical advice. "
+        "Consult a healthcare provider for personal health decisions.*"
+    )
+    
+    REFUSAL_RESPONSES = {
+        SafetyFlag.REFUSE_DIAGNOSIS: (
+            "I can't provide diagnoses. I'm designed for medical education, not clinical assessment. "
+            "For health concerns, please consult a healthcare provider who can properly evaluate you."
+        ),
+        SafetyFlag.REFUSE_TREATMENT: (
+            "I can't recommend treatments or medications. Treatment decisions require "
+            "a healthcare provider who knows your complete medical history. "
+            "I can explain how treatments work educationally if that helps."
+        ),
+        SafetyFlag.REFUSE_EMERGENCY: (
+            "This sounds like it could be a medical emergency. Please contact emergency services "
+            "(911 in the US) or go to your nearest emergency room immediately. "
+            "I'm not equipped to handle urgent medical situations."
+        ),
+    }
+    
+    @classmethod
+    def evaluate(cls, text: str) -> SafetyFlag:
+        """Evaluate input against safety boundaries."""
+        text_lower = text.lower()
+        
+        # Check hard boundaries
+        for pattern in cls.REFUSE_PATTERNS:
+            if re.search(pattern, text_lower):
+                if "emergency" in text_lower or any(w in text_lower for w in ["chest pain", "can't breathe", "overdose"]):
+                    return SafetyFlag.REFUSE_EMERGENCY
+                if any(w in text_lower for w in ["diagnose", "do i have", "what's wrong"]):
+                    return SafetyFlag.REFUSE_DIAGNOSIS
+                if any(w in text_lower for w in ["should i take", "prescribe", "dosage"]):
+                    return SafetyFlag.REFUSE_TREATMENT
+        
+        # Check soft boundaries
+        for pattern in cls.DISCLAIMER_PATTERNS:
+            if re.search(pattern, text_lower):
+                return SafetyFlag.NEEDS_DISCLAIMER
+        
+        return SafetyFlag.SAFE
+    
+    @classmethod
+    def get_refusal_response(cls, flag: SafetyFlag) -> Optional[str]:
+        """Get appropriate refusal response for a safety flag."""
+        return cls.REFUSAL_RESPONSES.get(flag)
+    
+    @classmethod
+    def apply_disclaimer(cls, response: str) -> str:
+        """Append safety disclaimer to response."""
+        return response + cls.DISCLAIMER_TEXT
+
+
+# =============================================================================
+# SECTION 5: INTENT CLASSIFICATION (Deterministic + LLM)
+# =============================================================================
+
+class IntentClassifier:
+    """
+    Hybrid intent classification with deterministic rules + LLM fallback.
+    Provides predictable behavior for common patterns.
+    """
+    
+    # Deterministic rules (checked first, in order)
+    RULES = [
+        # Greetings - highest priority
+        (AgentMode.IDLE, r"^(hi|hello|hey|good morning|good afternoon|good evening)[\s!.,]*$"),
+        (AgentMode.IDLE, r"^(thanks|thank you|thx|bye|goodbye|see you)[\s!.,]*$"),
+        
+        # History/Progress
+        (AgentMode.HISTORY, r"\b(my progress|what have i (studied|learned)|show (my )?history|study history)\b"),
+        (AgentMode.HISTORY, r"\b(recommend|what should i study|what next|suggest)\b"),
+        
+        # PubMed Search - explicit research requests
+        (AgentMode.SEARCH, r"\b(find|search|get|show|give)\b.*\b(paper|papers|article|articles|research|studies|literature|pubmed)\b"),
+        (AgentMode.SEARCH, r"\b(pubmed|research|literature)\b.*\b(on|about|for)\b"),
+        
+        # Quiz - explicit quiz requests
+        (AgentMode.QUIZ, r"\b(quiz|test)\s+(me|my knowledge)\b"),
+        (AgentMode.QUIZ, r"\b(practice questions|flashcards)\b.*\b(on|about|for)\b"),
+        
+        # Study Plan - explicit planning requests
+        (AgentMode.PLAN, r"\b(study plan|learning plan|study schedule)\b"),
+        (AgentMode.PLAN, r"\b(create|make|build)\b.*\b(plan|schedule)\b.*\b(for|to study)\b"),
+    ]
+    
+    @classmethod
+    def classify(cls, text: str) -> tuple[AgentMode, Optional[str], float]:
         """
+        Classify intent with confidence score.
+        
+        Returns:
+            (mode, topic, confidence)
+        """
+        text_lower = text.lower().strip()
+        
+        # Try deterministic rules first
+        for mode, pattern in cls.RULES:
+            if re.search(pattern, text_lower):
+                topic = cls._extract_topic(text_lower, mode)
+                obs.log("INTENT_CLASSIFIED", "IntentClassifier", 
+                       f"Deterministic: {mode.name}", {"pattern": pattern[:50]})
+                return (mode, topic, 0.95)
+        
+        # Default to EXPLAIN for medical questions
+        # (LLM will handle the actual response)
+        topic = cls._extract_topic(text_lower, AgentMode.EXPLAIN)
+        return (AgentMode.EXPLAIN, topic, 0.80)
+    
+    @classmethod
+    def _extract_topic(cls, text: str, mode: AgentMode) -> Optional[str]:
+        """Extract the medical topic from input."""
+        # Remove common prefixes
+        prefixes = [
+            r"^(what is|what are|what causes|explain|tell me about|how does|why do|describe)\s+",
+            r"^(find|search|get|show|give)\s+(me\s+)?(papers?|articles?|research|studies)\s+(on|about|for)\s+",
+            r"^(quiz|test)\s+(me\s+)?(on|about)\s+",
+            r"^(create|make|build)\s+(a\s+)?(study\s+)?plan\s+(for|on|about)\s+",
+        ]
+        
+        topic = text
+        for prefix in prefixes:
+            topic = re.sub(prefix, "", topic, flags=re.IGNORECASE)
+        
+        # Clean up
+        topic = topic.strip().rstrip("?.!")
+        
+        return topic if topic and len(topic) > 2 else None
+
+
+# =============================================================================
+# SECTION 6: MEMORY SYSTEM (Adaptive Learning)
+# =============================================================================
+
+class MemoryManager:
+    """
+    Adaptive learning memory with spaced repetition.
+    
+    State Management Rules:
+    - Store only learning progress, not personal data
+    - Clear session data after inactivity
+    - Never persist health-related queries
+    """
+    
+    def __init__(self, path: Path = Config.MEMORY_PATH):
+        self.path = path
+        self._cache: Optional[LearnerState] = None
+        self._ensure_storage()
+    
+    def _ensure_storage(self):
+        if not self.path.exists():
+            self.path.write_text("{}")
+    
+    def _load(self) -> Dict:
         try:
-            with open(self.db_path, "w", encoding="utf-8") as f:
-                json.dump(db, f, indent=2, ensure_ascii=False)
-            return True
-        except Exception as e:
-            logger.warning(f"Failed to save memory: {e}")
-            return False
+            return json.loads(self.path.read_text())
+        except (json.JSONDecodeError, IOError):
+            return {}
     
-    def record_study_session(
-        self, 
-        topic: str, 
-        intent: str, 
-        difficulty: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def _save(self, data: Dict):
+        self.path.write_text(json.dumps(data, indent=2))
+    
+    def get_learner(self, user_id: str = "default") -> LearnerState:
+        """Get or create learner state."""
+        data = self._load()
+        if user_id in data:
+            return LearnerState.from_dict(data[user_id])
+        return LearnerState(user_id=user_id)
+    
+    def record_study(
+        self,
+        topic: str,
+        activity: str,
+        performance: Optional[float] = None,
+        user_id: str = "default"
+    ):
         """
-        Record a study session and update spaced repetition schedule.
-        
-        This method implements the core spaced repetition algorithm:
-        1. Increment study count for the topic
-        2. Update difficulty based on study type
-        3. Calculate next review date using intervals
-        4. Persist updated record
+        Record a study session with spaced repetition update.
         
         Args:
-            topic: The medical topic studied
-            intent: Type of study activity (affects difficulty)
-            difficulty: Optional manual difficulty override
-            
-        Returns:
-            Updated topic record with new review schedule
+            topic: Medical topic studied
+            activity: Type of activity (explain, quiz, search)
+            performance: Optional score (0-1) for adaptive difficulty
+            user_id: Learner identifier
         """
-        if not topic or not topic.strip():
-            return {}
+        if not topic:
+            return
         
-        topic = topic.strip()
-        db = self.load()
+        data = self._load()
+        learner = self.get_learner(user_id)
+        
+        topic_key = topic.lower().strip()
         now = datetime.utcnow()
-        now_str = now.strftime("%Y-%m-%d %H:%M")
         
-        # Get existing record or create new one
-        record = db.get(topic, {
-            "topic": topic,
-            "times_studied": 0,
-            "difficulty": "medium",
-            "notes": [],
+        if topic_key not in learner.topics_studied:
+            learner.topics_studied[topic_key] = {
+                "first_seen": now.isoformat(),
+                "study_count": 0,
+                "last_studied": None,
+                "next_review": None,
+                "retention_stage": "new",
+                "activities": []
+            }
+        
+        topic_data = learner.topics_studied[topic_key]
+        topic_data["study_count"] += 1
+        topic_data["last_studied"] = now.isoformat()
+        topic_data["activities"].append({
+            "type": activity,
+            "timestamp": now.isoformat(),
+            "performance": performance
         })
         
-        # Update study count
-        record["times_studied"] = record.get("times_studied", 0) + 1
-        record["last_studied"] = now_str
+        # Update spaced repetition schedule
+        topic_data = self._update_retention(topic_data, performance)
         
-        # Determine difficulty (clinical questions are harder)
-        # DESIGN: Automatic difficulty adjustment based on content type
-        if difficulty:
-            record["difficulty"] = difficulty
-        elif intent == "clinical_question":
-            record["difficulty"] = "hard"  # Clinical cases are challenging
-        elif record["times_studied"] >= 5:
-            record["difficulty"] = "easy"  # Well-practiced topics become easier
+        # Update difficulty based on performance history
+        if performance is not None:
+            learner.current_difficulty = self._adjust_difficulty(learner, performance)
         
-        # Calculate next review using spaced repetition intervals
-        interval = SPACED_REPETITION_INTERVALS.get(record["difficulty"], 3)
-        record["next_review"] = (now + timedelta(days=interval)).date().isoformat()
+        learner.session_count += 1
+        learner.last_active = now.isoformat()
         
-        # Keep study log (last 10 entries for context)
-        record["notes"] = record.get("notes", [])[-9:]
-        record["notes"].append(f"{intent} on {now_str}")
+        data[user_id] = learner.to_dict()
+        self._save(data)
         
-        # Persist and return
-        db[topic] = record
-        self.save(db)
-        return record
+        obs.log("MEMORY_UPDATE", "MemoryManager",
+               f"Recorded: {topic_key}", {"activity": activity, "stage": topic_data["retention_stage"]})
     
-    def get_due_topics(self) -> List[Dict[str, Any]]:
-        """
-        Get all topics due for review based on spaced repetition schedule.
+    def _update_retention(self, topic_data: Dict, performance: Optional[float]) -> Dict:
+        """Update retention stage based on spaced repetition algorithm."""
+        current_stage = topic_data.get("retention_stage", "new")
         
-        Returns:
-            List of topic records where next_review <= today,
-            sorted by review date (most overdue first)
-        """
-        db = self.load()
-        today = datetime.utcnow().date()
+        # Stage progression
+        stages = ["new", "learning", "review", "mastered"]
+        current_idx = stages.index(current_stage)
+        
+        if performance is not None:
+            if performance >= 0.8 and current_idx < len(stages) - 1:
+                current_stage = stages[current_idx + 1]
+            elif performance < 0.5 and current_idx > 0:
+                current_stage = stages[current_idx - 1]
+        else:
+            # Default progression for non-quiz activities
+            if current_idx < 2:
+                current_stage = stages[min(current_idx + 1, 2)]
+        
+        topic_data["retention_stage"] = current_stage
+        
+        # Calculate next review date
+        interval_days = Config.SPACED_REPETITION_INTERVALS.get(current_stage, 3)
+        next_review = datetime.utcnow() + timedelta(days=interval_days)
+        topic_data["next_review"] = next_review.date().isoformat()
+        
+        return topic_data
+    
+    def _adjust_difficulty(self, learner: LearnerState, recent_performance: float) -> TopicDifficulty:
+        """Adjust difficulty based on cumulative performance."""
+        # Get average performance from recent activities
+        all_perfs = []
+        for topic_data in learner.topics_studied.values():
+            for activity in topic_data.get("activities", [])[-10:]:
+                if activity.get("performance") is not None:
+                    all_perfs.append(activity["performance"])
+        
+        if len(all_perfs) < 3:
+            return learner.current_difficulty
+        
+        avg_perf = sum(all_perfs) / len(all_perfs)
+        
+        if avg_perf >= 0.8 and learner.current_difficulty != TopicDifficulty.ADVANCED:
+            return TopicDifficulty(["beginner", "intermediate", "advanced"][
+                min(["beginner", "intermediate", "advanced"].index(learner.current_difficulty.value) + 1, 2)
+            ])
+        elif avg_perf < 0.5 and learner.current_difficulty != TopicDifficulty.BEGINNER:
+            return TopicDifficulty(["beginner", "intermediate", "advanced"][
+                max(["beginner", "intermediate", "advanced"].index(learner.current_difficulty.value) - 1, 0)
+            ])
+        
+        return learner.current_difficulty
+    
+    def get_due_topics(self, user_id: str = "default") -> List[str]:
+        """Get topics due for spaced repetition review."""
+        learner = self.get_learner(user_id)
+        today = datetime.utcnow().date().isoformat()
+        
         due = []
+        for topic, data in learner.topics_studied.items():
+            next_review = data.get("next_review")
+            if next_review and next_review <= today:
+                due.append(topic)
         
-        for topic, record in db.items():
-            try:
-                next_review = datetime.strptime(
-                    record.get("next_review", "2099-12-31"), 
-                    "%Y-%m-%d"
-                ).date()
-                if next_review <= today:
-                    due.append(record)
-            except ValueError:
-                continue
-        
-        # Sort by next_review date (most overdue first)
-        due.sort(key=lambda x: x.get("next_review", ""))
         return due
     
-    def get_study_summary(self) -> str:
-        """
-        Generate human-readable summary of study history.
+    def get_progress_summary(self, user_id: str = "default") -> str:
+        """Generate human-readable progress summary."""
+        learner = self.get_learner(user_id)
         
-        Returns:
-            Formatted string with all topics and their status
-        """
-        db = self.load()
-        if not db:
-            return "No study history recorded yet."
+        if not learner.topics_studied:
+            return "You haven't studied any topics yet. Ask me about any medical concept to get started!"
         
-        lines = []
-        for topic, record in sorted(db.items()):
-            times = record.get("times_studied", 1)
-            last = record.get("last_studied", "unknown")
-            diff = record.get("difficulty", "medium")
-            next_rev = record.get("next_review", "unscheduled")
-            lines.append(
-                f"• {topic}: studied {times}x, last: {last}, "
-                f"difficulty: {diff}, next: {next_rev}"
-            )
+        total_topics = len(learner.topics_studied)
+        total_sessions = sum(t.get("study_count", 0) for t in learner.topics_studied.values())
+        due_topics = self.get_due_topics(user_id)
+        
+        # Get topics by retention stage
+        stages = {"new": [], "learning": [], "review": [], "mastered": []}
+        for topic, data in learner.topics_studied.items():
+            stage = data.get("retention_stage", "new")
+            stages[stage].append(topic)
+        
+        lines = [
+            f"**Topics Studied:** {total_topics}",
+            f"**Total Sessions:** {total_sessions}",
+            f"**Current Level:** {learner.current_difficulty.value.title()}",
+            ""
+        ]
+        
+        if stages["mastered"]:
+            lines.append(f"✅ **Mastered:** {', '.join(stages['mastered'][:3])}")
+        if stages["review"]:
+            lines.append(f"📚 **In Review:** {', '.join(stages['review'][:3])}")
+        if stages["learning"]:
+            lines.append(f"📖 **Learning:** {', '.join(stages['learning'][:3])}")
+        
+        if due_topics:
+            lines.append(f"\n📅 **Due for Review:** {', '.join(due_topics[:5])}")
         
         return "\n".join(lines)
     
-    def get_context_for_agents(self) -> str:
-        """
-        Generate learner context for injection into agent prompts.
+    def get_recommendations(self, user_id: str = "default") -> str:
+        """Generate personalized study recommendations."""
+        learner = self.get_learner(user_id)
+        due = self.get_due_topics(user_id)
         
-        This method implements CONTEXT ENGINEERING by providing agents
-        with relevant learner history to personalize responses.
+        lines = []
         
-        Returns:
-            Formatted context string with learner statistics
-        """
-        db = self.load()
-        if not db:
-            return "This is a new learner with no prior study history."
-        
-        topics = list(db.keys())
-        due = self.get_due_topics()
-        
-        context = f"LEARNER CONTEXT:\n"
-        context += f"- Topics previously studied: {', '.join(topics[:10])}\n"
-        context += f"- Total topics covered: {len(topics)}\n"
         if due:
-            context += f"- Topics due for review: {', '.join([t['topic'] for t in due[:5]])}\n"
+            lines.append(f"**Review these topics:** {', '.join(due[:3])}")
         
-        return context
+        # Find weak areas (topics with low performance)
+        weak = []
+        for topic, data in learner.topics_studied.items():
+            perfs = [a.get("performance", 1) for a in data.get("activities", []) if a.get("performance")]
+            if perfs and sum(perfs)/len(perfs) < 0.6:
+                weak.append(topic)
+        
+        if weak:
+            lines.append(f"**Need more practice:** {', '.join(weak[:3])}")
+        
+        # Suggest progression based on level
+        suggestions = {
+            TopicDifficulty.BEGINNER: ["anatomy basics", "vital signs", "common symptoms", "basic pharmacology"],
+            TopicDifficulty.INTERMEDIATE: ["pathophysiology", "clinical reasoning", "differential diagnosis basics"],
+            TopicDifficulty.ADVANCED: ["complex cases", "treatment protocols", "research interpretation"]
+        }
+        
+        lines.append(f"**Try next:** {', '.join(suggestions[learner.current_difficulty][:2])}")
+        
+        return "\n".join(lines) if lines else "Keep exploring! Ask about any medical topic."
 
 
-# Global memory manager instance (singleton pattern)
-memory_manager = StudyMemoryManager()
+# Global memory instance
+memory = MemoryManager()
 
 
 # =============================================================================
-# CUSTOM TOOLS (Tool Integration)
-# =============================================================================
-# Custom tools extend agent capabilities beyond LLM knowledge.
-# These tools are registered with ADK and can be called by agents.
+# SECTION 7: TOOLS (Structured Invocation)
 # =============================================================================
 
-def pubmed_search(query: str, max_results: int = 5) -> Dict[str, Any]:
+class ToolRegistry:
     """
-    Search PubMed for medical literature using NCBI E-utilities API.
-    
-    This CUSTOM TOOL provides real-time access to peer-reviewed medical
-    literature, enabling evidence-based learning content.
-    
-    API Integration:
-        1. ESearch: Query PubMed and get matching PMIDs
-        2. EFetch: Retrieve article metadata for those PMIDs
-    
-    Args:
-        query: Search terms (e.g., "vitamin B12 deficiency causes")
-        max_results: Maximum articles to return (1-10, default 5)
-    
-    Returns:
-        Dictionary containing:
-            - query: Original search query
-            - count: Number of results found
-            - articles: List of article objects with:
-                - pmid: PubMed ID
-                - title: Article title
-                - abstract: Article abstract (truncated to 1000 chars)
-                - authors: List of author names
-                - journal: Journal name
-                - pubdate: Publication year
-            - error: Error message if search failed (optional)
-    
-    Example:
-        >>> pubmed_search("hypertension treatment", max_results=3)
-        {"query": "...", "count": 3, "articles": [...]}
+    Structured tool management with explicit invocation contracts.
     """
-    logger.info(f"PubMed search: '{query}' (max {max_results})")
-    max_results = min(max(1, max_results), 10)  # Clamp to valid range
-    
-    try:
-        # -----------------------------------------------------------------
-        # Step 1: ESearch - Get PMIDs matching the query
-        # -----------------------------------------------------------------
-        esearch_params = urllib.parse.urlencode({
-            "db": "pubmed",           # Database to search
-            "term": query,            # Search terms
-            "retmax": max_results,    # Maximum results
-            "retmode": "xml",         # Response format
-            "sort": "relevance"       # Sort by relevance
-        })
-        esearch_url = f"{NCBI_EUTILS_BASE}/esearch.fcgi?{esearch_params}"
-        
-        with urllib.request.urlopen(esearch_url, timeout=15) as response:
-            esearch_xml = response.read().decode("utf-8")
-        
-        esearch_root = ET.fromstring(esearch_xml)
-        pmids = [elem.text for elem in esearch_root.findall(".//Id") if elem.text]
-        
-        if not pmids:
-            return {"query": query, "count": 0, "articles": []}
-        
-        # -----------------------------------------------------------------
-        # Step 2: EFetch - Get article details for PMIDs
-        # -----------------------------------------------------------------
-        efetch_params = urllib.parse.urlencode({
-            "db": "pubmed",
-            "id": ",".join(pmids),  # Comma-separated PMIDs
-            "retmode": "xml"
-        })
-        efetch_url = f"{NCBI_EUTILS_BASE}/efetch.fcgi?{efetch_params}"
-        
-        with urllib.request.urlopen(efetch_url, timeout=15) as response:
-            efetch_xml = response.read().decode("utf-8")
-        
-        efetch_root = ET.fromstring(efetch_xml)
-        articles = []
-        
-        # -----------------------------------------------------------------
-        # Step 3: Parse article metadata from XML
-        # -----------------------------------------------------------------
-        for article_elem in efetch_root.findall(".//PubmedArticle"):
-            pmid = article_elem.findtext(".//PMID") or ""
-            title = article_elem.findtext(".//ArticleTitle") or "No title"
-            
-            # Abstract may have multiple parts - join them
-            abstract_parts = [
-                at.text.strip() 
-                for at in article_elem.findall(".//Abstract/AbstractText") 
-                if at.text
-            ]
-            abstract = " ".join(abstract_parts) if abstract_parts else "No abstract"
-            
-            journal = article_elem.findtext(".//Journal/Title") or ""
-            pubdate = (
-                article_elem.findtext(".//PubDate/Year") or 
-                article_elem.findtext(".//PubDate/MedlineDate") or 
-                "Unknown"
-            )
-            
-            # Extract up to 5 authors
-            authors = []
-            for author_elem in article_elem.findall(".//Author")[:5]:
-                lastname = author_elem.findtext("LastName") or ""
-                forename = author_elem.findtext("ForeName") or ""
-                if lastname:
-                    authors.append(f"{forename} {lastname}".strip())
-            
-            articles.append({
-                "pmid": pmid,
-                "title": title,
-                "abstract": abstract[:1000] + "..." if len(abstract) > 1000 else abstract,
-                "authors": authors,
-                "journal": journal,
-                "pubdate": pubdate
-            })
-        
-        return {"query": query, "count": len(articles), "articles": articles}
-    
-    except Exception as e:
-        logger.error(f"PubMed error: {e}")
-        return {"query": query, "count": 0, "articles": [], "error": str(e)}
-
-
-def save_study_plan(user_id: str, plan_content: str) -> Dict[str, Any]:
-    """
-    Persist a generated study plan to file storage.
-    
-    This CUSTOM TOOL enables study plan persistence, allowing learners
-    to access their plans across sessions.
-    
-    Args:
-        user_id: Identifier for the user (for multi-user support)
-        plan_content: Markdown-formatted study plan content
-    
-    Returns:
-        Status dictionary with save confirmation or error
-    """
-    logger.info(f"Saving study plan for {user_id}")
-    plan_path = Path(__file__).parent / f"study_plan_{user_id}.md"
-    try:
-        with open(plan_path, "w", encoding="utf-8") as f:
-            f.write(f"# Study Plan\nGenerated: {datetime.utcnow().isoformat()}\n\n")
-            f.write(plan_content)
-        return {"status": "saved", "user_id": user_id, "path": str(plan_path)}
-    except IOError as e:
-        return {"status": "error", "error": str(e)}
-
-
-def get_study_recommendations() -> Dict[str, Any]:
-    """
-    Get personalized study recommendations based on memory.
-    
-    Helper function that aggregates memory data for the recommender agent.
-    
-    Returns:
-        Dictionary with due topics, counts, and summary
-    """
-    due_topics = memory_manager.get_due_topics()
-    all_topics = memory_manager.load()
-    return {
-        "due_count": len(due_topics),
-        "due_topics": [t.get("topic") for t in due_topics[:5]],
-        "total_studied": len(all_topics),
-        "summary": memory_manager.get_study_summary(),
-    }
-
-
-# =============================================================================
-# SPECIALIZED LLM AGENTS
-# =============================================================================
-# Each agent has a specific role in the multi-agent system.
-# Agents are implemented as LlmAgent instances with custom instructions.
-#
-# DESIGN PATTERNS:
-# - Single Responsibility: Each agent handles one type of task
-# - Shared Context: All agents receive MEDGUIDE_SYSTEM_CONTEXT
-# - Output Keys: Each agent writes to a specific state key
-# =============================================================================
-
-# -----------------------------------------------------------------------------
-# AGENT 1: Intent Classifier
-# -----------------------------------------------------------------------------
-# ROLE: First agent in pipeline - routes requests to appropriate handlers
-# CRITICAL: Accurate classification is essential for correct routing
-# -----------------------------------------------------------------------------
-
-intent_classifier_agent = LlmAgent(
-    model=MODEL,
-    name="intent_classifier",
-    description="Classifies user intent for intelligent routing",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Classify the user's intent accurately. This is CRITICAL for routing.
-
-CLASSIFICATION RULES (in priority order):
-
-1. **"study_concept"** - DEFAULT for ANY medical/health question:
-   - "What is/are..." → study_concept
-   - "What causes..." → study_concept
-   - "Explain..." → study_concept
-   - "How does X work?" → study_concept
-   - "Tell me about..." → study_concept
-   - "Why does..." → study_concept
-   - Questions about diseases, symptoms, drugs, anatomy, physiology → study_concept
-   
-   EXAMPLES:
-   - "What are the causes of vitamin B12 deficiency?" → {{"intent": "study_concept", "topic": "vitamin B12 deficiency"}}
-   - "Explain heart failure" → {{"intent": "study_concept", "topic": "heart failure"}}
-   - "How does insulin work?" → {{"intent": "study_concept", "topic": "insulin mechanism"}}
-
-2. **"create_quiz"** - ONLY when explicitly requesting quiz:
-   - "Quiz me on..." / "Test me on..." / "Give me questions about..."
-
-3. **"make_study_plan"** - ONLY when explicitly requesting a plan:
-   - "Create a study plan..." / "Make a schedule..."
-
-4. **"mixed_tutor"** - Multiple requests combined:
-   - "Explain X and quiz me" / "Teach me and make a plan"
-
-5. **"clinical_question"** - Clinical scenarios:
-   - "A patient presents with..." / "What would you do if..."
-
-6. **"study_history"** - Asking about OWN progress:
-   - "What have I studied?" / "Show my progress"
-
-7. **"study_recommendation"** - Asking what to study next:
-   - "What should I study?" / "What's due for review?"
-
-8. **"pubmed_search"** - Explicitly asking for research:
-   - "Find papers on..." / "Search PubMed for..."
-
-9. **"chitchat"** - ONLY pure greetings with NO medical content:
-   - "Hi" / "Hello" / "Thanks" / "Bye"
-   - If ANY medical term present → NOT chitchat!
-
-10. **"other"** - Only if truly unclassifiable
-
-DEFAULT RULE: When in doubt, use "study_concept" - better to teach than redirect!
-
-OUTPUT: Return ONLY valid JSON (no markdown, no extra text):
-{{"intent": "study_concept", "topic": "vitamin B12 deficiency"}}
-""",
-    output_key="intent_json",  # Output stored in session state
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 2: Concept Explainer
-# -----------------------------------------------------------------------------
-# ROLE: Primary educational agent - explains medical topics comprehensively
-# BEHAVIOR: Provides structured explanations with clinical relevance
-# -----------------------------------------------------------------------------
-
-concept_explainer_agent = LlmAgent(
-    model=MODEL,
-    name="concept_explainer",
-    description="Explains medical concepts comprehensively",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Provide clear, comprehensive medical education. Answer DIRECTLY.
-
-RESPONSE FORMAT:
-
-## 📚 [Topic Name]
-
-### Overview
-[2-3 sentences clearly defining/introducing the topic]
-
-### Causes / Etiology
-[If applicable - list main causes organized by category]
-• **Category 1:** cause 1, cause 2
-• **Category 2:** cause 3, cause 4
-
-### Mechanism / Pathophysiology  
-[Explain HOW this happens at biological level - 2-3 sentences]
-
-### Clinical Features
-[If applicable - key symptoms/signs]
-
-### Diagnosis
-[If applicable - how is this identified]
-
-### Treatment / Management
-[If applicable - key approaches]
-
-### 🎯 Key Points to Remember
-1. [Most important takeaway]
-2. [Second key point]
-3. [Third key point]
-4. [Clinical pearl or exam tip]
-
----
-💡 Would you like me to quiz you on this or explore something related?
-
-GUIDELINES:
-- Be thorough but focused (300-400 words)
-- Use bullet points for lists
-- Include clinical correlations
-- Highlight "high-yield" facts for exams
-- Use proper medical terminology with explanations
-
-NEVER say "I can help you with that" - just provide the content!
-""",
-    output_key="concept_explanation",
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 3: Literature Searcher
-# -----------------------------------------------------------------------------
-# ROLE: Searches PubMed for evidence-based content
-# TOOLS: Uses pubmed_search custom tool
-# -----------------------------------------------------------------------------
-
-literature_search_agent = LlmAgent(
-    model=MODEL,
-    name="literature_searcher",
-    description="Searches and summarizes medical literature from PubMed",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Search PubMed and summarize research findings.
-
-PROCESS:
-1. Create effective search query from the topic
-2. Use pubmed_search tool
-3. Summarize key findings
-
-OUTPUT FORMAT:
-
-## 📑 Research Evidence: [Topic]
-
-**Search:** [your query]
-
-**Key Findings:**
-• [Finding 1] - (Author, Year, Journal)
-• [Finding 2] - (Author, Year, Journal)
-• [Finding 3] - (Author, Year, Journal)
-
-**Evidence Summary:**
-[2-3 sentences synthesizing the research]
-
-**Clinical Implications:**
-[What this means for understanding/practice]
-
----
-*Based on PubMed search. Educational purposes only.*
-
-Keep under 200 words. Never fabricate citations.
-""",
-    tools=[pubmed_search],  # Custom tool registration
-    output_key="literature_summary",
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 4: Guideline Explainer
-# -----------------------------------------------------------------------------
-# ROLE: Summarizes clinical guidelines (AHA, ACC, ADA, etc.)
-# BEHAVIOR: Provides evidence-based recommendations overview
-# -----------------------------------------------------------------------------
-
-guideline_explainer_agent = LlmAgent(
-    model=MODEL,
-    name="guideline_explainer",
-    description="Provides overview of clinical guidelines",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Summarize relevant clinical guidelines.
-
-OUTPUT FORMAT:
-
-## 📋 Guideline Overview: [Topic]
-
-**Relevant Guidelines:** [AHA, ACC, ADA, WHO, etc.]
-
-**Key Recommendations:**
-• [Recommendation 1]
-• [Recommendation 2]
-• [Recommendation 3]
-
-**Important Thresholds:** (if applicable)
-• [Specific numbers/criteria]
-
----
-*Educational summary. Refer to full guidelines for clinical decisions.*
-
-Keep to 100-150 words.
-""",
-    output_key="guideline_summary",
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 5: Quiz Generator
-# -----------------------------------------------------------------------------
-# ROLE: Creates assessment questions for self-testing
-# BEHAVIOR: Generates MCQs and flashcards based on explained content
-# -----------------------------------------------------------------------------
-
-quiz_generator_agent = LlmAgent(
-    model=MODEL,
-    name="quiz_generator",
-    description="Generates assessment questions",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Create quiz questions to test understanding.
-
-OUTPUT FORMAT:
-
-## 📝 Quiz: [Topic]
-
-### Multiple Choice Questions
-
-**Q1.** [Question - include clinical vignette when appropriate]
-
-A) [Option]
-B) [Option]
-C) [Option]
-D) [Option]
-E) [Option]
-
-**Answer:** [Letter] - [Explanation]
-
----
-
-**Q2.** [Question]
-[Same format]
-
----
-
-**Q3.** [Question]
-[Same format]
-
----
-
-### 📇 Flashcards
-
-| Front | Back |
-|-------|------|
-| [Question 1] | [Answer 1] |
-| [Question 2] | [Answer 2] |
-| [Question 3] | [Answer 3] |
-| [Question 4] | [Answer 4] |
-| [Question 5] | [Answer 5] |
-
----
-💪 How did you do? Want more questions?
-
-Generate 3 MCQs and 5 flashcards.
-""",
-    output_key="quiz_content",
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 6: Study Plan Builder
-# -----------------------------------------------------------------------------
-# ROLE: Creates personalized study schedules
-# TOOLS: Uses save_study_plan for persistence
-# -----------------------------------------------------------------------------
-
-study_plan_builder_agent = LlmAgent(
-    model=MODEL,
-    name="study_plan_builder",
-    description="Creates personalized study schedules",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Create a realistic, actionable study plan.
-
-OUTPUT FORMAT:
-
-## 📅 Study Plan: [Topic]
-
-**Goal:** [What learner will achieve]
-
-### Day 1: Foundation (30-45 min)
-- [ ] Review core concepts (15 min)
-- [ ] Read: [specific resource]
-- [ ] Practice: [specific activity]
-
-### Day 2: Deep Dive (45 min)
-- [ ] [Task 1]
-- [ ] [Task 2]
-
-### Day 3: Clinical Applications (30 min)
-- [ ] Case studies
-- [ ] [Task]
-
-### Day 4: Self-Assessment (30 min)
-- [ ] Practice quiz
-- [ ] Review weak areas
-
-### Day 5: Integration (30 min)
-- [ ] Quick review
-- [ ] Connect to related topics
-
-**Resources:**
-• [Resource 1]
-• [Resource 2]
-
-**Tips:**
-• [Practical tip 1]
-• [Practical tip 2]
-
----
-📊 I'll track your progress!
-
-After generating, call save_study_plan("default_user", plan_markdown).
-""",
-    tools=[save_study_plan],  # Custom tool for persistence
-    output_key="study_plan",
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 7: Smalltalk Handler
-# -----------------------------------------------------------------------------
-# ROLE: Handles greetings and casual conversation
-# BEHAVIOR: Only activates for pure greetings with no medical content
-# -----------------------------------------------------------------------------
-
-smalltalk_agent = LlmAgent(
-    model=MODEL,
-    name="smalltalk_handler",
-    description="Handles ONLY pure greetings with no medical content",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Handle pure greetings ONLY.
-
-FOR GREETINGS:
-"Hello! 👋 Welcome to MedGuide!
-
-I'm your AI medical learning companion. Try asking me:
-• **Any medical question** - \"What causes diabetes?\"
-• **Quiz yourself** - \"Quiz me on cardiology\"
-• **Plan studies** - \"Create a study plan for pharmacology\"
-• **Find research** - \"Search PubMed for hypertension\"
-
-What would you like to learn today?"
-
-FOR THANKS: "You're welcome! 😊 What else would you like to explore?"
-
-FOR BYE: "Goodbye! 👋 Happy studying!"
-
-FOR OK: "Great! What would you like to learn about next?"
-""",
-    output_key="smalltalk_response",
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 8: Study History Summarizer
-# -----------------------------------------------------------------------------
-# ROLE: Summarizes user's learning progress from persistent memory
-# STATE: Uses user_study_history injected into session state
-# -----------------------------------------------------------------------------
-
-study_history_agent = LlmAgent(
-    model=MODEL,
-    name="study_history_summarizer",
-    description="Summarizes user study progress",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Summarize learning progress using user_study_history from state.
-
-OUTPUT FORMAT:
-
-## 📊 Your Learning Progress
-
-**Topics Studied:** [count]
-**Topics Due for Review:** [count]
-
-### Summary
-[Brief overview of their learning journey]
-
-### Topics Covered
-[List topics with status]
-
-### Recommendations
-• [What to review]
-• [What to learn next]
-
----
-🎯 What would you like to study?
-
-If no history, welcome them and suggest starter topics.
-""",
-    output_key="history_summary",
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 9: Study Recommender
-# -----------------------------------------------------------------------------
-# ROLE: Provides personalized study recommendations
-# STATE: Uses recommendation_data from session state
-# -----------------------------------------------------------------------------
-
-study_recommender_agent = LlmAgent(
-    model=MODEL,
-    name="study_recommender",
-    description="Recommends what to study next",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Give personalized recommendations using recommendation_data from state.
-
-OUTPUT FORMAT:
-
-## 🎯 Your Study Recommendations
-
-### Due for Review
-• [Topic] - last studied [when]
-
-### Suggested New Topics
-• [Related topic 1] - [why it connects]
-• [Related topic 2] - [why important]
-
-### Today's Recommendation
-[One specific, actionable suggestion]
-
----
-What would you like to study?
-
-If new user, suggest high-yield foundational topics.
-""",
-    output_key="recommendations",
-)
-
-# -----------------------------------------------------------------------------
-# AGENT 10: Response Synthesizer
-# -----------------------------------------------------------------------------
-# ROLE: Combines outputs from multiple agents into cohesive response
-# BEHAVIOR: Used in mixed_tutor mode to merge parallel/sequential outputs
-# -----------------------------------------------------------------------------
-
-response_synthesizer_agent = LlmAgent(
-    model=MODEL,
-    name="response_synthesizer",
-    description="Synthesizes all outputs into final response",
-    instruction=f"""
-{MEDGUIDE_SYSTEM_CONTEXT}
-
-YOUR ROLE: Combine outputs from other agents into one polished response.
-
-CHECK STATE FOR:
-- concept_explanation
-- literature_summary  
-- guideline_summary
-- quiz_content
-- study_plan
-
-RULES:
-1. Start with main content (concept_explanation)
-2. Integrate supporting info naturally
-3. Remove redundancy
-4. Keep well-organized
-5. End with encouraging prompt
-
-DO NOT:
-- Start with "Based on the information..."
-- Add meta-commentary
-- Repeat information
-""",
-    output_key="final_response",
-)
-
-
-# =============================================================================
-# MAIN ORCHESTRATOR AGENT
-# =============================================================================
-# The MedGuideRouter is a custom BaseAgent that orchestrates all sub-agents.
-#
-# ORCHESTRATION PATTERNS:
-# 1. Intent Classification: First step determines routing
-# 2. Parallel Execution: Literature + Guidelines run concurrently
-# 3. Sequential Pipeline: Explain → Quiz → Plan in order
-# 4. Response Synthesis: Combine outputs for mixed requests
-# 5. Memory Update: Record study sessions for spaced repetition
-#
-# DESIGN DECISIONS:
-# - Silent execution (_run_agent_silent) hides internal events from user
-# - Only final agent's output is yielded to user
-# - Context injection provides personalization data to agents
-# =============================================================================
-
-class MedGuideRouter(BaseAgent):
-    """
-    Root orchestrator for MedGuide multi-agent system.
-    
-    This class demonstrates MULTI-AGENT ORCHESTRATION by:
-    - Routing requests based on classified intent
-    - Running agents in PARALLEL for speed (literature + guidelines)
-    - Running agents SEQUENTIALLY for logical flow (explain → quiz)
-    - Managing SESSION STATE for inter-agent communication
-    - Updating LONG-TERM MEMORY after study sessions
-    
-    Attributes:
-        name: Agent identifier
-        sub_agents: List of all specialized agents
-    """
-    
-    # Pydantic configuration for arbitrary types
-    model_config = {"arbitrary_types_allowed": True}
-    
-    def __init__(self, name: str = "medguide_router") -> None:
-        """
-        Initialize the orchestrator with all sub-agents.
-        
-        Args:
-            name: Identifier for this agent instance
-        """
-        super().__init__(
-            name=name,
-            description="MedGuide: AI-powered medical learning companion",
-            sub_agents=[
-                intent_classifier_agent,
-                literature_search_agent,
-                guideline_explainer_agent,
-                concept_explainer_agent,
-                quiz_generator_agent,
-                study_plan_builder_agent,
-                smalltalk_agent,
-                study_history_agent,
-                study_recommender_agent,
-                response_synthesizer_agent,
-            ],
-        )
     
     @staticmethod
-    def _parse_intent(raw_output: Any) -> Dict[str, Any]:
+    def search_pubmed(query: str, max_results: int = 5) -> Dict[str, Any]:
         """
-        Parse intent classifier output with robust error handling.
+        Search PubMed for medical literature.
         
-        Handles various LLM output formats:
-        - Clean JSON
-        - JSON wrapped in markdown code blocks
-        - Malformed JSON with recovery
+        PRECONDITIONS:
+        - Query must be non-empty medical term
+        - Max results between 1-10
         
-        Args:
-            raw_output: Raw string output from intent classifier
-            
-        Returns:
-            Dictionary with 'intent' and 'topic' keys
+        POSTCONDITIONS:
+        - Returns dict with query, count, articles[]
+        - Each article has: pmid, title, abstract, authors, journal, year, url
+        - On error: returns dict with error field
         """
-        # Default to study_concept - better to teach than redirect
-        default = {"intent": "study_concept", "topic": None}
+        # Validate preconditions
+        if not query or len(query.strip()) < 2:
+            return {"query": query, "count": 0, "articles": [], "error": "Invalid query"}
         
-        if not raw_output:
-            return default
+        max_results = max(1, min(max_results, Config.MAX_SEARCH_RESULTS))
         
-        text = str(raw_output).strip()
-        
-        # Handle markdown code fences (```json ... ```)
-        if "```" in text:
-            parts = text.split("```")
-            for part in parts:
-                part = part.strip()
-                if part.startswith("json"):
-                    part = part[4:].strip()
-                if part.startswith("{"):
-                    text = part
-                    break
-        
-        # Find JSON object boundaries
-        start = text.find("{")
-        end = text.rfind("}")
-        
-        if start == -1 or end == -1 or end <= start:
-            return default
+        obs.log("TOOL_START", "PubMed", f"Searching: {query[:50]}")
+        start_time = time.perf_counter()
         
         try:
-            parsed = json.loads(text[start:end + 1])
-            intent = str(parsed.get("intent", "study_concept")).lower().strip()
+            # Step 1: Search for PMIDs
+            search_params = urllib.parse.urlencode({
+                "db": "pubmed",
+                "term": query,
+                "retmax": max_results,
+                "retmode": "xml",
+                "sort": "relevance"
+            })
+            search_url = f"{Config.PUBMED_BASE_URL}/esearch.fcgi?{search_params}"
             
-            # Validate intent is recognized
-            valid_intents = {
-                "study_concept", "create_quiz", "make_study_plan", "mixed_tutor",
-                "clinical_question", "study_history", "study_recommendation",
-                "pubmed_search", "chitchat", "other"
-            }
+            with urllib.request.urlopen(search_url, timeout=Config.API_TIMEOUT) as resp:
+                search_xml = resp.read().decode()
             
-            if intent not in valid_intents:
-                intent = "study_concept"  # Default to educational response
+            root = ET.fromstring(search_xml)
+            pmids = [e.text for e in root.findall(".//Id") if e.text]
             
-            return {"intent": intent, "topic": parsed.get("topic")}
-        except json.JSONDecodeError:
-            return default
-    
-    async def _run_agent_silent(
-        self, 
-        agent: LlmAgent, 
-        ctx: InvocationContext
-    ) -> None:
-        """
-        Run an agent without yielding its events to the user.
-        
-        This method implements "silent execution" where the agent runs
-        and updates session state, but its events are not shown to user.
-        Used for intermediate processing steps.
-        
-        Args:
-            agent: The LlmAgent to run
-            ctx: Invocation context with session state
-        """
-        try:
-            async for _ in agent.run_async(ctx):
-                pass  # Consume events but don't yield
+            if not pmids:
+                obs.log_tool_invocation("pubmed_search", {"query": query}, True, 0)
+                return {"query": query, "count": 0, "articles": []}
+            
+            # Step 2: Fetch article details
+            fetch_params = urllib.parse.urlencode({
+                "db": "pubmed",
+                "id": ",".join(pmids),
+                "retmode": "xml"
+            })
+            fetch_url = f"{Config.PUBMED_BASE_URL}/efetch.fcgi?{fetch_params}"
+            
+            with urllib.request.urlopen(fetch_url, timeout=Config.API_TIMEOUT) as resp:
+                fetch_xml = resp.read().decode()
+            
+            root = ET.fromstring(fetch_xml)
+            articles = []
+            
+            for article in root.findall(".//PubmedArticle"):
+                pmid = article.findtext(".//PMID") or ""
+                title = article.findtext(".//ArticleTitle") or "Untitled"
+                
+                # Extract abstract (handle structured abstracts)
+                abstract_parts = []
+                for ab in article.findall(".//AbstractText"):
+                    label = ab.get("Label", "")
+                    text = ab.text or ""
+                    if label:
+                        abstract_parts.append(f"{label}: {text}")
+                    else:
+                        abstract_parts.append(text)
+                abstract = " ".join(abstract_parts)[:800] or "No abstract available"
+                
+                # Extract authors (first 3)
+                authors = []
+                for auth in article.findall(".//Author")[:3]:
+                    last = auth.findtext("LastName") or ""
+                    if last:
+                        authors.append(last)
+                
+                journal = article.findtext(".//Journal/Title") or ""
+                year = article.findtext(".//PubDate/Year") or article.findtext(".//PubDate/MedlineDate") or ""
+                
+                articles.append({
+                    "pmid": pmid,
+                    "title": title,
+                    "abstract": abstract,
+                    "authors": authors,
+                    "journal": journal,
+                    "year": year[:4] if year else "",
+                    "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                })
+            
+            duration = (time.perf_counter() - start_time) * 1000
+            obs.log_tool_invocation("pubmed_search", {"query": query}, True, len(articles))
+            obs.record_metric("pubmed_search_ms", duration)
+            
+            return {"query": query, "count": len(articles), "articles": articles}
+            
         except Exception as e:
-            logger.error(f"Agent {agent.name} failed: {e}")
+            obs.log_tool_invocation("pubmed_search", {"query": query}, False)
+            obs.log("TOOL_ERROR", "PubMed", str(e), error=str(e))
+            return {"query": query, "count": 0, "articles": [], "error": str(e)}
     
-    async def _run_agents_parallel(
-        self, 
-        agents: List[LlmAgent], 
-        ctx: InvocationContext
-    ) -> None:
+    @staticmethod
+    def save_study_plan(content: str, topic: str = "Medical") -> Dict[str, Any]:
+        """Save generated study plan to file."""
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"study_plan_{timestamp}.md"
+        filepath = Config.BASE_DIR / filename
+        
+        try:
+            header = f"# Study Plan: {topic}\n*Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}*\n\n"
+            filepath.write_text(header + content)
+            obs.log_tool_invocation("save_plan", {"topic": topic}, True)
+            return {"saved": True, "filename": filename, "path": str(filepath)}
+        except IOError as e:
+            obs.log_tool_invocation("save_plan", {"topic": topic}, False)
+            return {"saved": False, "error": str(e)}
+
+
+# =============================================================================
+# SECTION 8: AGENT PROMPTS (Mode-Specific)
+# =============================================================================
+
+class AgentPrompts:
+    """
+    Mode-specific prompts with explicit behavioral contracts.
+    """
+    
+    SYSTEM = """You are MedGuide, an AI medical education tutor.
+
+CORE IDENTITY:
+- Expert medical educator, not a clinician
+- Warm, clear, encouraging teaching style
+- Evidence-based, accurate information
+- Adaptive to learner's level
+
+ABSOLUTE CONSTRAINTS:
+- NEVER diagnose conditions
+- NEVER recommend specific treatments
+- NEVER provide dosing information
+- NEVER give emergency medical advice
+- ALWAYS clarify this is educational
+
+When uncertain, acknowledge limitations honestly."""
+
+    EXPLAIN = """MODE: Medical Concept Explanation
+
+Your task is to explain the medical topic clearly and thoroughly.
+
+STRUCTURE (use naturally, not rigidly):
+1. Start with a clear definition/overview
+2. Explain the key mechanisms or concepts
+3. Discuss clinical relevance (why it matters)
+4. Highlight important points to remember
+5. Offer to go deeper or test understanding
+
+ADAPT TO LEARNER:
+- Beginner: Focus on fundamentals, use analogies
+- Intermediate: Include pathophysiology, clinical correlations
+- Advanced: Discuss nuances, recent developments, edge cases
+
+Be thorough but engaging. Explain terminology when first used."""
+
+    QUIZ = """MODE: Assessment Generation
+
+Create an educational quiz on the topic.
+
+REQUIREMENTS:
+- 3-4 multiple choice questions
+- Use clinical vignettes where appropriate
+- Include answer explanations (hidden until revealed)
+- Add 3-5 rapid-fire flashcard Q&As
+
+QUALITY STANDARDS:
+- Questions should test understanding, not just recall
+- Include common misconceptions as distractors
+- Explanations should teach, not just reveal answers
+- Match difficulty to learner level
+
+Format answers with <details> tags for reveal."""
+
+    PLAN = """MODE: Study Plan Generation
+
+Create a practical, achievable study plan.
+
+REQUIREMENTS:
+- 5-7 day structure
+- 30-60 minutes per day
+- Mix of activities: reading, practice, review
+- Clear daily objectives
+- Progress checkpoints
+
+PRINCIPLES:
+- Start with foundations, build complexity
+- Include active recall opportunities
+- Space out review sessions
+- Make it feel achievable, not overwhelming"""
+
+    SEARCH = """MODE: Literature Search
+
+You have access to the search_pubmed tool. Use it to find relevant research.
+
+PROTOCOL:
+1. ALWAYS call search_pubmed first with a focused query
+2. Wait for results before writing
+3. Synthesize findings from returned articles
+4. Cite properly: Author et al., Year, Journal (PMID: xxx)
+
+OUTPUT STRUCTURE:
+- State what you searched
+- Summarize key findings (2-3 most relevant papers)
+- Synthesize: what does the evidence show?
+- Note limitations or gaps
+
+CRITICAL: Never fabricate citations. Only cite returned results."""
+
+    CHAT = """MODE: Conversational Response
+
+Respond naturally and briefly to greetings or simple interactions.
+
+EXAMPLES:
+- "Hi" → "Hey! What would you like to learn about today?"
+- "Thanks" → "You're welcome! Any other questions?"
+- "Bye" → "Take care! Good luck with your studies."
+
+Keep it warm and natural. Don't give menus or lists."""
+
+    HISTORY = """MODE: Progress Summary
+
+Present the learner's study progress in a clear, encouraging way.
+
+Include:
+- Topics studied and mastery levels
+- Items due for review
+- Personalized recommendations
+
+Be encouraging about progress made."""
+
+
+# =============================================================================
+# SECTION 9: SPECIALIZED AGENTS
+# =============================================================================
+
+# Create agents at module level for Pydantic compatibility
+explain_agent = LlmAgent(
+    model=Config.MODEL,
+    name="explainer",
+    description="Medical concept explanation",
+    instruction=f"{AgentPrompts.SYSTEM}\n\n{AgentPrompts.EXPLAIN}",
+    output_key="explanation"
+)
+
+quiz_agent = LlmAgent(
+    model=Config.MODEL,
+    name="quiz_master",
+    description="Assessment generation",
+    instruction=f"{AgentPrompts.SYSTEM}\n\n{AgentPrompts.QUIZ}",
+    output_key="quiz"
+)
+
+plan_agent = LlmAgent(
+    model=Config.MODEL,
+    name="planner",
+    description="Study plan creation",
+    instruction=f"{AgentPrompts.SYSTEM}\n\n{AgentPrompts.PLAN}",
+    tools=[ToolRegistry.save_study_plan],
+    output_key="plan"
+)
+
+search_agent = LlmAgent(
+    model=Config.MODEL,
+    name="researcher",
+    description="Literature search",
+    instruction=f"{AgentPrompts.SYSTEM}\n\n{AgentPrompts.SEARCH}",
+    tools=[ToolRegistry.search_pubmed],
+    output_key="research"
+)
+
+chat_agent = LlmAgent(
+    model=Config.MODEL,
+    name="assistant",
+    description="Conversational responses",
+    instruction=f"{AgentPrompts.SYSTEM}\n\n{AgentPrompts.CHAT}",
+    output_key="response"
+)
+
+router_agent = LlmAgent(
+    model=Config.MODEL,
+    name="router",
+    description="Intent classification",
+    instruction="""Classify the user's intent. Return ONLY JSON:
+{"intent": "explain|quiz|plan|search|history|chat", "topic": "extracted topic or null"}
+
+Rules:
+- Medical questions → "explain"
+- "quiz me on X" → "quiz"
+- "study plan for X" → "plan"  
+- "find papers/research on X" → "search"
+- "my progress/history" → "history"
+- Greetings only → "chat"
+
+Default to "explain" for medical content.""",
+    output_key="classification"
+)
+
+ALL_AGENTS = [explain_agent, quiz_agent, plan_agent, search_agent, chat_agent, router_agent]
+
+
+# =============================================================================
+# SECTION 10: ORCHESTRATOR (State Machine)
+# =============================================================================
+
+class MedGuide(BaseAgent):
+    """
+    Production-grade medical education orchestrator.
+    
+    Implements:
+    - Explicit mode state machine
+    - Safety-first processing pipeline
+    - Deterministic routing with LLM fallback
+    - Observability at every step
+    - Adaptive learning integration
+    """
+    
+    model_config = {"arbitrary_types_allowed": True}
+    
+    def __init__(self):
+        super().__init__(
+            name="medguide",
+            description="AI-Powered Medical Learning Companion",
+            sub_agents=ALL_AGENTS
+        )
+        self._current_mode = AgentMode.IDLE
+        obs.log("INIT", "Orchestrator", "MedGuide initialized", 
+               {"agents": len(ALL_AGENTS), "mode": self._current_mode.name})
+    
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
         """
-        Run multiple agents concurrently using asyncio.gather.
+        Main orchestration pipeline with explicit state transitions.
         
-        This method demonstrates PARALLEL AGENT EXECUTION for improved
-        performance. Agents run simultaneously and update shared state.
-        
-        Performance: 2-3x faster than sequential execution
-        
-        Args:
-            agents: List of agents to run in parallel
-            ctx: Shared invocation context
+        Pipeline:
+        1. Start trace → correlation ID
+        2. Extract input → validate contract
+        3. Safety check → boundaries
+        4. Classify intent → deterministic + LLM
+        5. Route to mode → execute agent
+        6. Update memory → learning record
+        7. Apply safety → disclaimer if needed
         """
-        logger.info(f"Running PARALLEL: {[a.name for a in agents]}")
         
-        async def run_one(agent):
-            await self._run_agent_silent(agent, ctx)
+        # ═══════════════════════════════════════════════════════════════════
+        # STEP 1: Initialize Trace
+        # ═══════════════════════════════════════════════════════════════════
+        correlation_id = obs.start_trace()
+        obs.log("REQUEST_START", "Orchestrator", "Processing request")
         
-        # asyncio.gather runs all coroutines concurrently
-        await asyncio.gather(
-            *[run_one(agent) for agent in agents], 
-            return_exceptions=True
+        # ═══════════════════════════════════════════════════════════════════
+        # STEP 2: Extract & Validate Input
+        # ═══════════════════════════════════════════════════════════════════
+        user_text = self._extract_input(ctx)
+        
+        if not user_text:
+            obs.log("INPUT_EMPTY", "Orchestrator", "No input received")
+            yield self._create_event("I didn't catch that. What would you like to learn about?")
+            return
+        
+        obs.log("INPUT_RECEIVED", "Orchestrator", f"Input: {user_text[:100]}...")
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # STEP 3: Safety Evaluation
+        # ═══════════════════════════════════════════════════════════════════
+        safety_flag = SafetyBoundary.evaluate(user_text)
+        obs.log_safety_check(safety_flag, user_text)
+        
+        # Handle hard refusals
+        if safety_flag in (SafetyFlag.REFUSE_DIAGNOSIS, SafetyFlag.REFUSE_TREATMENT, SafetyFlag.REFUSE_EMERGENCY):
+            self._transition_mode(AgentMode.REFUSE, f"Safety: {safety_flag.name}")
+            refusal = SafetyBoundary.get_refusal_response(safety_flag)
+            yield self._create_event(refusal)
+            return
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # STEP 4: Intent Classification
+        # ═══════════════════════════════════════════════════════════════════
+        mode, topic, confidence = IntentClassifier.classify(user_text)
+        
+        # For low confidence, use LLM router
+        if confidence < 0.85 and mode == AgentMode.EXPLAIN:
+            mode, topic = await self._llm_classify(ctx, user_text)
+        
+        obs.log("INTENT_CLASSIFIED", "Orchestrator", 
+               f"Mode: {mode.name}, Topic: {topic}, Confidence: {confidence:.2f}")
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # STEP 5: Mode Execution
+        # ═══════════════════════════════════════════════════════════════════
+        self._transition_mode(mode, "Intent classification")
+        
+        needs_disclaimer = (safety_flag == SafetyFlag.NEEDS_DISCLAIMER)
+        
+        # Route to appropriate handler
+        if mode == AgentMode.IDLE:
+            # Greetings/chat
+            async for event in chat_agent.run_async(ctx):
+                yield event
+        
+        elif mode == AgentMode.HISTORY:
+            # Direct response from memory
+            summary = memory.get_progress_summary()
+            recommendations = memory.get_recommendations()
+            response = f"## Your Learning Progress\n\n{summary}\n\n## Recommendations\n\n{recommendations}"
+            yield self._create_event(response)
+        
+        elif mode == AgentMode.SEARCH:
+            # Literature search
+            async for event in search_agent.run_async(ctx):
+                if needs_disclaimer and hasattr(event, 'content'):
+                    event = self._apply_disclaimer_to_event(event)
+                yield event
+            if topic:
+                memory.record_study(topic, "search")
+        
+        elif mode == AgentMode.QUIZ:
+            # Quiz generation
+            async for event in quiz_agent.run_async(ctx):
+                yield event
+            if topic:
+                memory.record_study(topic, "quiz")
+        
+        elif mode == AgentMode.PLAN:
+            # Study planning
+            async for event in plan_agent.run_async(ctx):
+                yield event
+            if topic:
+                memory.record_study(topic, "plan")
+        
+        else:
+            # Default: Explanation
+            async for event in explain_agent.run_async(ctx):
+                if needs_disclaimer and hasattr(event, 'content'):
+                    event = self._apply_disclaimer_to_event(event)
+                yield event
+            if topic:
+                memory.record_study(topic, "explain")
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # STEP 6: Finalize
+        # ═══════════════════════════════════════════════════════════════════
+        self._transition_mode(AgentMode.IDLE, "Request complete")
+        obs.log("REQUEST_COMPLETE", "Orchestrator", "Done")
+    
+    def _extract_input(self, ctx: InvocationContext) -> str:
+        """Safely extract user input from context."""
+        try:
+            if hasattr(ctx, 'user_content') and ctx.user_content:
+                content = ctx.user_content
+                if hasattr(content, 'parts'):
+                    for part in content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            return str(part.text).strip()
+                return str(content).strip()
+        except Exception as e:
+            obs.log("INPUT_ERROR", "Orchestrator", f"Failed to extract input: {e}", error=str(e))
+        return ""
+    
+    async def _llm_classify(self, ctx: InvocationContext, text: str) -> tuple[AgentMode, Optional[str]]:
+        """Use LLM for complex intent classification."""
+        try:
+            async for _ in router_agent.run_async(ctx):
+                pass
+            
+            result = ctx.session.state.get("classification", "")
+            return self._parse_classification(result)
+        except Exception as e:
+            obs.log("CLASSIFY_ERROR", "Orchestrator", str(e), error=str(e))
+            return AgentMode.EXPLAIN, None
+    
+    def _parse_classification(self, result: str) -> tuple[AgentMode, Optional[str]]:
+        """Parse LLM classification result."""
+        try:
+            text = str(result).strip()
+            # Find JSON in response
+            match = re.search(r'\{[^{}]+\}', text)
+            if match:
+                data = json.loads(match.group())
+                
+                mode_map = {
+                    "explain": AgentMode.EXPLAIN,
+                    "quiz": AgentMode.QUIZ,
+                    "plan": AgentMode.PLAN,
+                    "search": AgentMode.SEARCH,
+                    "history": AgentMode.HISTORY,
+                    "chat": AgentMode.IDLE
+                }
+                
+                intent = data.get("intent", "explain").lower()
+                mode = mode_map.get(intent, AgentMode.EXPLAIN)
+                topic = data.get("topic")
+                
+                return mode, topic
+        except Exception:
+            pass
+        
+        return AgentMode.EXPLAIN, None
+    
+    def _transition_mode(self, new_mode: AgentMode, reason: str):
+        """Explicit mode transition with logging."""
+        old_mode = self._current_mode
+        self._current_mode = new_mode
+        obs.log_mode_transition(old_mode, new_mode, reason)
+    
+    def _create_event(self, text: str) -> Event:
+        """Create a response event."""
+        return Event(
+            author="medguide",
+            content=types.Content(parts=[types.Part(text=text)])
         )
     
-    def _inject_context(self, ctx: InvocationContext) -> None:
-        """
-        Inject learner context into session state.
-        
-        This method implements CONTEXT ENGINEERING by providing
-        personalized learner data to agents via session state.
-        
-        Args:
-            ctx: Invocation context to inject data into
-        """
-        ctx.session.state["learner_context"] = memory_manager.get_context_for_agents()
-        ctx.session.state["current_time"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    
-    async def _run_async_impl(
-        self, 
-        ctx: InvocationContext
-    ) -> AsyncGenerator[Event, None]:
-        """
-        Main orchestration pipeline implementation.
-        
-        FLOW:
-        1. Inject learner context into session state
-        2. Run intent classifier to determine routing
-        3. Route to appropriate agent(s) based on intent:
-           - chitchat → smalltalk agent
-           - study_history → history agent with memory data
-           - study_recommendation → recommender with memory data
-           - pubmed_search → literature agent
-           - create_quiz → concept explainer (silent) → quiz generator
-           - make_study_plan → concept explainer (silent) → plan builder
-           - study_concept → concept explainer (direct output)
-           - mixed_tutor → full pipeline with parallel + sequential
-        4. Update persistent memory after study sessions
-        5. Yield only final response events to user
-        
-        Args:
-            ctx: Invocation context with session and state
-            
-        Yields:
-            Event objects from the final responding agent only
-        """
-        
-        # -----------------------------------------------------------------
-        # OBSERVABILITY: Log start of request processing
-        # -----------------------------------------------------------------
-        logger.info("=" * 50)
-        logger.info("MedGuide: Processing request")
-        logger.info("=" * 50)
-        
-        # -----------------------------------------------------------------
-        # CONTEXT ENGINEERING: Inject learner history
-        # -----------------------------------------------------------------
-        self._inject_context(ctx)
-        
-        # -----------------------------------------------------------------
-        # STEP 1: Intent Classification (silent)
-        # -----------------------------------------------------------------
-        await self._run_agent_silent(intent_classifier_agent, ctx)
-        
-        raw_intent = ctx.session.state.get("intent_json", "")
-        parsed = self._parse_intent(raw_intent)
-        intent = parsed["intent"]
-        topic = parsed["topic"]
-        
-        logger.info(f"Intent: {intent}, Topic: {topic}")
-        
-        # Store in state for downstream agents
-        ctx.session.state["detected_intent"] = intent
-        ctx.session.state["detected_topic"] = topic
-        
-        # -----------------------------------------------------------------
-        # STEP 2: Route Based on Intent
-        # -----------------------------------------------------------------
-        
-        # ROUTE: Smalltalk (greetings only)
-        if intent == "chitchat":
-            logger.info("Route: Smalltalk")
-            async for event in smalltalk_agent.run_async(ctx):
-                yield event
-            return
-        
-        # ROUTE: Study History (uses persistent memory)
-        if intent == "study_history":
-            logger.info("Route: Study History")
-            ctx.session.state["user_study_history"] = memory_manager.get_study_summary()
-            async for event in study_history_agent.run_async(ctx):
-                yield event
-            return
-        
-        # ROUTE: Recommendations (uses persistent memory)
-        if intent == "study_recommendation":
-            logger.info("Route: Recommendations")
-            ctx.session.state["recommendation_data"] = json.dumps(get_study_recommendations())
-            async for event in study_recommender_agent.run_async(ctx):
-                yield event
-            return
-        
-        # ROUTE: PubMed Search (literature tool)
-        if intent == "pubmed_search":
-            logger.info("Route: PubMed Search")
-            async for event in literature_search_agent.run_async(ctx):
-                yield event
-            if topic:
-                memory_manager.record_study_session(topic, intent)
-            return
-        
-        # ROUTE: Quiz Only (sequential: explain → quiz)
-        if intent == "create_quiz":
-            logger.info("Route: Quiz")
-            await self._run_agent_silent(concept_explainer_agent, ctx)  # For context
-            async for event in quiz_generator_agent.run_async(ctx):
-                yield event
-            if topic:
-                memory_manager.record_study_session(topic, intent)
-            return
-        
-        # ROUTE: Study Plan Only (sequential: explain → plan)
-        if intent == "make_study_plan":
-            logger.info("Route: Study Plan")
-            await self._run_agent_silent(concept_explainer_agent, ctx)  # For context
-            async for event in study_plan_builder_agent.run_async(ctx):
-                yield event
-            if topic:
-                memory_manager.record_study_session(topic, intent)
-            return
-        
-        # ROUTE: Concept/Clinical/Other (direct explanation)
-        if intent in ("study_concept", "clinical_question", "other"):
-            logger.info(f"Route: Concept Explanation ({intent})")
-            async for event in concept_explainer_agent.run_async(ctx):
-                yield event
-            if topic:
-                memory_manager.record_study_session(topic, intent)
-            return
-        
-        # ROUTE: Mixed Tutor (full pipeline with parallel + sequential)
-        if intent == "mixed_tutor":
-            logger.info("Route: Mixed Tutor (Full Pipeline)")
-            
-            # PARALLEL: Run literature + guidelines concurrently
-            await self._run_agents_parallel(
-                [literature_search_agent, guideline_explainer_agent],
-                ctx
-            )
-            
-            # SEQUENTIAL: Explanation → Quiz → Plan
-            await self._run_agent_silent(concept_explainer_agent, ctx)
-            await self._run_agent_silent(quiz_generator_agent, ctx)
-            await self._run_agent_silent(study_plan_builder_agent, ctx)
-            
-            # SYNTHESIZE: Combine all outputs into cohesive response
-            async for event in response_synthesizer_agent.run_async(ctx):
-                yield event
-            
-            if topic:
-                memory_manager.record_study_session(topic, intent)
+    def _apply_disclaimer_to_event(self, event: Event) -> Event:
+        """Apply safety disclaimer to an event."""
+        if hasattr(event, 'content') and hasattr(event.content, 'parts'):
+            for part in event.content.parts:
+                if hasattr(part, 'text') and part.text:
+                    part.text = SafetyBoundary.apply_disclaimer(part.text)
+        return event
 
 
 # =============================================================================
-# ROOT AGENT EXPORT
-# =============================================================================
-# This is the entry point that ADK loads when running:
-#   adk run <folder_name>
-#   adk web <folder_name>
+# SECTION 11: EXPORTS
 # =============================================================================
 
-root_agent = MedGuideRouter(name="medguide")
+root_agent = MedGuide()
+
+__all__ = ["root_agent", "MedGauide", "AgentMode", "SafetyBoundary", "MemoryManager"]
